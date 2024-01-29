@@ -3,12 +3,15 @@ from __future__ import division
 from __future__ import unicode_literals
 from __future__ import print_function
 
+from datetime import timedelta
+
 import torch
 import numpy as np
 import random
 import os
 from metrics import compute_metrics, tensor_text_to_video_metrics, tensor_video_to_text_sim
 import time
+from torch import distributed as dist
 import argparse
 from modules.tokenization_clip import SimpleTokenizer as ClipTokenizer
 from modules.file_utils import PYTORCH_PRETRAINED_BERT_CACHE
@@ -18,7 +21,10 @@ from modules.optimization import BertAdam
 from util import parallel_apply, get_logger
 from dataloaders.data_dataloaders import DATALOADER_DICT
 
-torch.distributed.init_process_group(backend="nccl")
+# dist.init_process_group(backend="nccl")
+os.environ['NCCL_BLOCKING_WAIT'] = '1'  # set to enforce timeout
+dist.init_process_group('nccl' if dist.is_nccl_available() else 'gloo',
+                        timeout=timedelta(seconds=10800))
 
 global logger
 
@@ -44,6 +50,9 @@ def get_args(description='CLIP4Clip on Retrieval Task'):
     parser.add_argument('--seed', type=int, default=42, help='random seed')
     parser.add_argument('--max_words', type=int, default=20, help='')
     parser.add_argument('--max_frames', type=int, default=100, help='')
+    parser.add_argument('--image_resolution', type=int, default=224, help='')
+    parser.add_argument('--find_unused_parameters', action='store_true', help='')
+
     parser.add_argument('--feature_framerate', type=int, default=1, help='')
     parser.add_argument('--margin', type=float, default=0.1, help='margin for loss')
     parser.add_argument('--hard_negative_rate', type=float, default=0.5, help='rate of intra negative sample')
@@ -211,8 +220,12 @@ def prep_optimizer(args, model, num_train_optimization_steps, device, n_gpu, loc
                          t_total=num_train_optimization_steps, weight_decay=weight_decay,
                          max_grad_norm=1.0)
 
+    if args.find_unused_parameters:
+        print(f'find_unused_parameters is True')
+    else:
+        print(f'find_unused_parameters is False')
     model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[local_rank],
-                                                      output_device=local_rank, find_unused_parameters=True)
+                                                      output_device=local_rank, find_unused_parameters=args.find_unused_parameters)
 
     return optimizer, scheduler, model
 

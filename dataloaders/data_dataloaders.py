@@ -17,6 +17,7 @@ def dataloader_msrvtt_train(args, tokenizer):
         tokenizer=tokenizer,
         max_frames=args.max_frames,
         unfold_sentences=args.expand_msrvtt_sentences,
+        image_resolution=args.image_resolution,
         frame_order=args.train_frame_order,
         slice_framepos=args.slice_framepos,
     )
@@ -42,6 +43,7 @@ def dataloader_msrvtt_test(args, tokenizer, subset="test"):
         feature_framerate=args.feature_framerate,
         tokenizer=tokenizer,
         max_frames=args.max_frames,
+        image_resolution=args.image_resolution,
         frame_order=args.eval_frame_order,
         slice_framepos=args.slice_framepos,
     )

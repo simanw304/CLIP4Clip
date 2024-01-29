@@ -29,9 +29,13 @@ class RawVideoExtractorCV2():
         assert sample_fp > -1
 
         # Samples a frame sample_fp X frames.
-        cap = cv2.VideoCapture(video_file)
-        frameCount = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        fps = int(cap.get(cv2.CAP_PROP_FPS))
+        try:
+            cap = cv2.VideoCapture(video_file)
+            frameCount = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+            fps = int(cap.get(cv2.CAP_PROP_FPS))
+        except Exception as e:
+            print(video_file)
+            print(e)
 
         total_duration = (frameCount + fps - 1) // fps
         start_sec, end_sec = 0, total_duration
